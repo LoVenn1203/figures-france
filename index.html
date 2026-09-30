@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figures Historiques de France</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for horizontal filter bar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-full flex flex-col font-sans antialiased selection:bg-amber-100 selection:text-amber-900">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetFilters()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-500 flex items-center justify-center text-white shadow-sm font-bold text-lg">
+                    <i class="fa-solid fa-landmark"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-base sm:text-lg leading-tight">Figures de France</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block">179 destins qui ont façonné l'Histoire</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="favorites-toggle" onclick="toggleFavoritesFilter()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 text-xs sm:text-sm font-medium transition">
+                    <i class="fa-regular fa-bookmark text-amber-600"></i>
+                    <span class="hidden sm:inline">Favoris</span>
+                    <span id="favorites-count" class="bg-amber-100 text-amber-800 text-xs px-1.5 py-0.5 rounded-full font-bold">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-white border-b border-slate-200 py-3 shadow-2xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <!-- Search bar -->
+            <div class="relative w-full sm:w-80">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="search-input" oninput="handleSearch()" placeholder="Rechercher une figure (ex: Napoléon, Jeanne...)" class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition">
+            </div>
+            
+            <!-- Horizontal Eras Scroll -->
+            <div class="w-full sm:w-auto overflow-x-auto no-scrollbar flex items-center space-x-2 py-1">
+                <button onclick="filterByEra('Toutes')" id="era-btn-Toutes" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-900 text-white transition">Toutes</button>
+                <button onclick="filterByEra('Antiquité & Gaule')" id="era-btn-Antiquité & Gaule" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Antiquité & Gaule</button>
+                <button onclick="filterByEra('Moyen Âge')" id="era-btn-Moyen Âge" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Moyen Âge</button>
+                <button onclick="filterByEra('Renaissance & Ancien Régime')" id="era-btn-Renaissance & Ancien Régime" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Renaissance & Ancien Régime</button>
+                <button onclick="filterByEra('Révolution & Empire')" id="era-btn-Révolution & Empire" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Révolution & Empire</button>
+                <button onclick="filterByEra('XIXe Siècle')" id="era-btn-XIXe Siècle" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition">XIXe Siècle</button>
+                <button onclick="filterByEra('XXe Siècle & Époque Contemporaine')" id="era-btn-XXe Siècle & Époque Contemporaine" class="era-tab px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap bg-slate-100 text-slate-600 hover:bg-slate-200 transition">XXe Siècle & Contemporain</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div id="results-count" class="text-xs font-medium text-slate-500 mb-4">Affichage de 179 figures historiques</div>
+        
+        <!-- Grid layout: 2 columns on mobile, up to 4 on desktop -->
+        <div id="figures-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <!-- Cards injected via JavaScript -->
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 text-xl mb-3">
+                <i class="fa-solid fa-face-frown"></i>
+            </div>
+            <h3 class="text-base font-semibold text-slate-800">Aucune figure historique trouvée</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm">Essayez de modifier vos termes de recherche ou de réinitialiser les filtres d'époque.</p>
+            <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-medium hover:bg-amber-700 transition">Réinitialiser les filtres</button>
+        </div>
+    </main>
+
+    <div id="detail-modal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div id="modal-content" class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl transform scale-95 transition-transform duration-200 flex flex-col">
+            <!-- Modal header -->
+            <div class="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
+                <div class="flex items-center space-x-3">
+                    <span id="modal-era-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200"></span>
+                    <span id="modal-dates" class="text-xs text-slate-500 font-medium"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="modal-fav-btn" onclick="toggleFavoriteCurrentModal()" class="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+                        <i class="fa-regular fa-bookmark"></i>
+                    </button>
+                    <button onclick="closeModal()" class="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal body -->
+            <div class="p-6 space-y-6">
+                <div>
+                    <h2 id="modal-name" class="text-2xl font-bold text-slate-900"></h2>
+                    <p id="modal-role" class="text-sm font-medium text-amber-700 mt-0.5"></p>
+                </div>
+
+                <div class="bg-amber-50/50 border border-amber-100 rounded-xl p-4 italic text-sm text-amber-900 relative">
+                    <i class="fa-solid fa-quote-left text-amber-300 text-lg absolute top-2 left-2 -z-0 opacity-50"></i>
+                    <p id="modal-quote" class="relative z-10 pl-4"></p>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Biographie & Rôle historique</h4>
+                    <p id="modal-bio" class="text-sm text-slate-600 leading-relaxed"></p>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Faits marquants</h4>
+                    <ul id="modal-achievements" class="space-y-2 text-sm text-slate-600">
+                        <!-- Injected achievements list -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complete dataset of 179 historical French figures
+        const figuresData = [
+            // Antiquité & Gaule
+            { id: 1, name: "Vercingétorix", era: "Antiquité & Gaule", dates: "v. 82 av. J.-C. – 46 av. J.-C.", role: "Chef et roi des Arvernes", bio: "Chef de la coalition gauloise contre Jules César, il unifia les tribus gauloises lors de la guerre des Gaules et mena la résistance héroïque au siège d'Alésia en 52 av. J.-C.", quote: "Puisque vous ne m'avez pas vaincu par la force, vous m'avez vaincu par la trahison.", achievements: ["Unification des tribus gauloises", "Victoire tactique à Gergovie", "Siège d'Alésia"] },
+            { id: 2, name: "César", era: "Antiquité & Gaule", dates: "100 av. J.-C. – 44 av. J.-C.", role: "Général romain et conquérant de la Gaule", bio: "Bien que romain, il a profondément transformé le destin de la Gaule en l'intégrant dans le monde gréco-romain à travers ses Commentaires sur la Guerre des Gaules.", quote: "Alea jacta est (Le sort en est jeté).", achievements: ["Conquête de la Gaule", "Réforme du calendrier", "Dictature à vie à Rome"] },
+            { id: 3, name: "Diviciac", era: "Antiquité & Gaule", dates: "Ier siècle av. J.-C.", role: "Chef éduen et philosophe", bio: "Premier magistrat des Éduens, allié de Rome et druide réputé, il incarna la diplomatie gauloise auprès du Sénat romain.", quote: "La parole est l'arme des sages au service de la paix.", achievements: ["Alliance diplomatique avec Rome", "Transmission du savoir druidique", "Souveraineté éduenne préservée"] },
+            { id: 4, name: "Ambiorix", era: "Antiquité & Gaule", dates: "Ier siècle av. J.-C.", role: "Chef des Éburons", bio: "Célèbre pour avoir infligé une défaite cinglante aux légions romaines de Titurius Sabinus et Cotta à Aduatuca en 54 av. J.-C.", quote: "Mieux vaut la liberté dans les bois que la chaîne dorée.", achievements: ["Victoire d'Aduatuca contre Rome", "Résistance acharnée des Éburons", "Échappée légendaire dans la forêt ardennaise"] },
+            { id: 5, name: "Sainte Geneviève", era: "Antiquité & Gaule", dates: "v. 420 – 502", role: "Sainte patronne de Paris", bio: "Elle sauva Paris de l'invasion des Huns d'Attila en 451 en exhortant les Parisiens à la prière et au courage.", quote: "Restez dans vos foyers, priez, Dieu exaucera vos larmes.", achievements: ["Sauvetage de Paris face aux Huns", "Approvisionnement de la ville assiégée", "Construction de la basilique Saints-Apôtres"] },
+            { id: 6, name: "Clovis Ier", era: "Antiquité & Gaule", dates: "v. 466 – 511", role: "Premier roi des Francs", bio: "Fondateur de la dynastie des Mérovingiens, il unifia une grande partie de la Gaule et se convertit au christianisme nicéen, scellant l'alliance entre la monarchie et l'Église.", quote: "Courbe ton cou, ô fier sicambre, brûle ce que tu as adoré, adore ce que tu as brûlé.", achievements: ["Victoire de Soissons sur Syagrius", "Baptême à Reims (vers 496)", "Unification des tribus franques"] },
+            { id: 7, name: "Clotilde", era: "Antiquité & Gaule", dates: "v. 474 – 545", role: "Reine des Francs", bio: "Épouse de Clovis, elle joua un rôle déterminant dans la conversion de son époux et du peuple franc au christianisme.", quote: "Les dieux que vous servez ne sont rien.", achievements: ["Conversion de Clovis", "Fondation d'églises et d'abbayes", "Rôle politique majeur de régente"] },
+            { id: 8, name: "Saint Rémi", era: "Antiquité & Gaule", dates: "v. 437 – 533", role: "Évêque de Reims", bio: "Il baptisa Clovis et ses guerriers à Reims, instaurant le sacre chrétien des rois de France.", quote: "Dieu veuille que tu aimes la paix et que tu détestes la discorde.", achievements: ["Baptême historique de Clovis", "Organisation de l'Église en Gaule franque", "Miracles et évangélisation"] },
+            { id: 9, name: "Frédégonde", era: "Antiquité & Gaule", dates: "v. 545 – 597", role: "Reine de Neustrie", bio: "Figure redoutable et souveraine influente des temps mérovingiens, connue pour sa rivalité légendaire avec Brunehaut.", quote: "Le pouvoir ne se partage pas, il s'exerce.", achievements: ["Défense des intérêts de la Neustrie", "Maîtrise des intrigues de cour", "Pérennité de la dynastie franque"] },
+            { id: 10, name: "Brunehaut", era: "Antiquité & Gaule", dates: "v. 543 – 613", role: "Reine d'Austrasie", bio: "Souveraine wisigothe devenue reine d'Austrasie, réputée pour son sens aigu de l'État, ses réformes administratives et sa fin tragique.", quote: "L'ordre et la loi doivent primer sur le chaos des armes.", achievements: ["Restauration des voies romaines", "Réforme fiscale", "Gouvernance influente sur plusieurs décennies"] },
+            { id: 11, name: "Dagobert Ier", era: "Antiquité & Gaule", dates: "603 – 639", role: "Roi des Francs", bio: "Roi mérovingien qui unifia brièvement le royaume franc, célèbre pour son administration centralisée et la fondation de l'abbaye de Saint-Denis.", quote: "La justice est le fondement du trône.", achievements: ["Fondation de la basilique de Saint-Denis", "Rédaction des lois nationales", "Apogée temporaire mérovingien"] },
+            { id: 12, name: "Éloi de Noyon", era: "Antiquité & Gaule", dates: "v. 588 – 660", role: "Orfèvre, ministre et évêque", bio: "Grand argentier et conseiller avisé de Dagobert Ier, connu pour sa charité et ses talents artistiques.", quote: "Le travail bien fait honore l'homme.", achievements: ["Chefs-d'œuvre d'orfèvrerie", "Fondation du monastère de Solignac", "Évangélisation des campagnes"] },
+            
+            // Moyen Âge
+            { id: 13, name: "Charles Martel", era: "Moyen Âge", dates: "686 – 741", role: "Maire du palais d'Austrasie", bio: "Il arrêta l'avancée des armées omeyyades lors de la décisive bataille de Poitiers en 732, sauvant l'Europe chrétienne.", quote: "En avant pour la défense de notre foi et de notre sol.", achievements: ["Victoire historique à Poitiers (732)", "Restaurateur de l'unité franque", "Père de la dynastie carolingienne"] },
+            { id: 14, name: "Pépin le Bref", era: "Moyen Âge", dates: "714 – 768", role: "Premier roi des Francs de la dynastie carolingienne", bio: "Il mit fin aux Mérovingiens dits 'fainéants', se fit sacrer roi et créa les États pontificaux.", quote: "Celui qui exerce le pouvoir doit porter le titre de roi.", achievements: ["Fondation de la dynastie carolingienne", "Création des États pontificaux", "Sacre par le pape Étienne II"] },
+            { id: 15, name: "Charlemagne", era: "Moyen Âge", dates: "742 – 814", role: "Roi des Francs et Empereur d'Occident", bio: "Unificateur de l'Europe occidentale, protecteur des arts et des lettres, il fut couronné empereur à Rome le jour de Noël en l'an 800.", quote: "Avoir une autre langue, c'est posséder un second âme.", achievements: ["Couronnement impérial en l'an 800", "Renaissance carolingienne", "Création des écoles palatines"] },
+            { id: 16, name: "Roland de Fesensac", era: "Moyen Âge", dates: "736 – 778", role: "Paladin de Charlemagne", bio: "Héros de la Chanson de Roland, mort en héros à la bataille des Pyrénées (Roncevaux) en protégeant l'arrière-garde impériale.", quote: "Frappe de ton épée, Durandal, ne te brise point !", achievements: ["Héroïsme à Roncevaux", "Symbole de la chevalerie franque", "Immortalisation littéraire"] },
+            { id: 17, name: "Louis le Pieux", era: "Moyen Âge", dates: "778 – 840", role: "Empereur d'Occident", bio: "Fils de Charlemagne, il tenta de maintenir l'unité de l'Empire malgré les tensions familiales et les guerres civiles.", quote: "L'unité de l'Empire est le garant de la paix.", achievements: ["Maintien culturel de l'Empire", "Réformes ecclésiastiques", "Transmission du savoir"] },
+            { id: 18, name: "Charles le Chauve", era: "Moyen Âge", dates: "823 – 877", role: "Roi de Francie occidentale", bio: "Signataire des serments de Strasbourg en 842 et du traité de Verdun (843), il posa les bases de la France moderne.", quote: "La parole donnée entre frères doit sceller le royaume.", achievements: ["Traité de Verdun (843)", "Serments de Strasbourg", "Soutien aux érudits et poètes"] },
+            { id: 19, name: "Eudes de Paris", era: "Moyen Âge", dates: "858 – 898", role: "Roi des Francs", bio: "Il organisa la défense héroïque de Paris contre les redoutables Vikings lors du grand siège de 885-886.", quote: "Paris ne pliera pas sous les bannières du nord.", achievements: ["Défense de Paris contre les Vikings", "Élection comme roi de Francie occidentale", "Affermissement de l'autorité royale"] },
+            { id: 20, name: "Hugues Capet", era: "Moyen Âge", dates: "941 – 996", role: "Roi des Francs et fondateur des Capétiens", bio: "Élu roi en 987, il fonda la dynastie capétienne qui régna sur la France pendant plus de huit siècles.", quote: "Dieu m'a fait roi, à moi de le servir.", achievements: ["Fondation de la dynastie capétienne", "Couronnement à Noyon en 987", "Stabilisation du trône de France"] },
+            { id: 21, name: "Robert II le Pieux", era: "Moyen Âge", dates: "972 – 1031", role: "Roi des Francs", bio: "Souverain pieux, mélomane et poète, il consolida l'assise territoriale et spirituelle de la monarchie capétienne.", quote: "La prière et l'harmonie valent plus que les épées.", achievements: ["Consolidation du domaine royal", "Poursuite de l'œuvre d'Hugues Capet", "Soutien à la réforme monastique"] },
+            { id: 22, name: "Guillaume le Conquérant", era: "Moyen Âge", dates: "1027 – 1087", role: "Duc de Normandie et Roi d'Angleterre", bio: "Vainqueur de la bataille d'Hastings en 1066, il bouleversa l'histoire de l'Angleterre tout en restant vassal du roi de France pour la Normandie.", quote: "À cœur vaillant, rien d'impossible.", achievements: ["Conquête normande de l'Angleterre (1066)", "Rédaction du Domesday Book", "Renforcement féodal"] },
+            { id: 23, name: "Urbain II", era: "Moyen Âge", dates: "1042 – 1099", role: "Pape de l'Église catholique", bio: "Originaire de Châtillon, il lança le célèbre appel de Clermont en 1095 donnant naissance à la première croisade.", quote: "Dieu le veut ! Dieu le veut !", achievements: ["Appel de Clermont (1095)", "Lancement de la Première Croisade", "Réforme de l'Église"] },
+            { id: 24, name: "Godefroy de Bouillon", era: "Moyen Âge", dates: "1060 – 1100", role: "Chef de la première croisade", bio: "Figure majeure de la chevalerie médiévale, premier souverain chrétien de Jérusalem après la prise de la ville en 1099.", quote: "Je ne porterai point de couronne d'or là où mon Sauveur a porté une couronne d'épines.", achievements: ["Prise de Jérusalem (1099)", "Fondation du Royaume de Jérusalem", "Incarnation de l'idéal chevaleresque"] },
+            { id: 25, name: "Aliénor d'Aquitaine", era: "Moyen Âge", dates: "1122 – 1204", role: "Reine de France puis reine d'Angleterre", bio: "Femme d'une immense culture et d'un pouvoir exceptionnel, tour à tour reine de France (épouse de Louis VII) puis d'Angleterre (épouse de Henri II Plantagenêt).", quote: "Rien n'est plus noble qu'un esprit libre et cultivé.", achievements: ["Participation à la Deuxième Croisade", "Mère de Richard Cœur de Lion", "Mécène des arts courtois"] },
+            { id: 26, name: "Bernard de Clairvaux", era: "Moyen Âge", dates: "1090 – 1153", role: "Abbé cistercien et théologien", bio: "Personnalité spirituelle la plus influente du XIIe siècle, grand réformateur monastique et prédicateur de la deuxième croisade.", quote: "Aimer suffit pour tout dire.", achievements: ["Fondation de l'abbaye de Clairvaux", "Développement de l'Ordre cistercien", "Influence majeure sur la papauté"] },
+            { id: 27, name: "Louis VII le Jeune", era: "Moyen Âge", dates: "1120 – 1180", role: "Roi de France", bio: "Souverain pieux, il mena la difficile Deuxième Croisade et fit face habilement à la puissance montante des Plantagenêts.", quote: "L'humilité est l'armure du souverain.", achievements: ["Participation à la Deuxième Croisade", "Développement des libertés urbaines", "Affirmation de la justice royale"] },
+            { id: 28, name: "Philippe II Auguste", era: "Moyen Âge", dates: "1165 – 1223", role: "Roi de France", bio: "Il tripla le domaine royal, confisqua les terres continentales des Plantagenêts et fit de Paris la capitale intellectuelle de l'Occident.", quote: "La France est un royaume que Dieu protège et que nous grandissons.", achievements: ["Victoire décisive de Bouvines (1214)", "Pavage et fortification de Paris", "Création de la fonction de bailli"] },
+            { id: 29, name: "Blanche de Castille", era: "Moyen Âge", dates: "1188 – 1252", role: "Reine de France et régente", bio: "Mère de Saint Louis, elle assura avec poigne et sagesse la régence du royaume, matant les révoltes des grands barons féodaux.", quote: "Mon fils, j'aimerais mieux vous voir mort que de vous voir commettre un seul péché mortel.", achievements: ["Double régence couronnée de succès", "Pacification du royaume", "Éducation exemplaire de Saint Louis"] },
+            { id: 30, name: "Louis IX (Saint Louis)", era: "Moyen Âge", dates: "1214 – 1270", role: "Roi de France", bio: "Modèle de la justice royale, protecteur des arts, bâtisseur de la Sainte-Chapelle, il incarna l'idéal du roi chrétien et sage.", quote: "Justice, équité et paix sont les piliers du royaume.", achievements: ["Construction de la Sainte-Chapelle", "Création du Parlement de Paris", "Diffusion de la monnaie royale unique"] },
+            { id: 31, name: "Thomas d'Aquin", era: "Moyen Âge", dates: "1225 – 1274", role: "Philosophe et théologien", bio: "Docteur de l'Église, il enseigna à l'Université de Paris et harmonisa la pensée d'Aristote avec la théologie chrétienne.", quote: "La foi cherche l'intelligence.", achievements: ["Rédaction de la Somme théologique", "Synthèse entre foi et raison", "Enseignement à la Sorbonne"] },
+            { id: 32, name: "Philippe IV le Bel", era: "Moyen Âge", dates: "1268 – 1314", role: "Roi de France", bio: "Souverain autoritaire qui renforça l'État moderne, créa les États généraux et dissout l'ordre des Templiers.", quote: "Le roi ne tient son pouvoir que de Dieu et de son épée.", achievements: ["Création des États Généraux (1302)", "Dissolution de l'ordre du Temple", "Création de la chambre des comptes"] },
+            { id: 33, name: "Guillaume de Nogaret", era: "Moyen Âge", dates: "1260 – 1313", role: "Conseiller de Philippe le Bel", bio: "Juriste redoutable, artisan de la laïcisation de l'État royal et de l'affirmation de la souveraineté face à la papauté.", quote: "La loi du roi prime sur toute autre autorité terrestre.", achievements: ["Affrontement avec le pape Boniface VIII", "Arrestation des Templiers", "Renforcement de la justice royale"] },
+            { id: 34, name: "Charles V le Sage", era: "Moyen Âge", dates: "1338 – 1380", role: "Roi de France", bio: "Souverain érudit qui redressa militairement la France au début de la guerre de Cent Ans et fonda la première bibliothèque royale au Louvre.", quote: "L'art de régner réside dans la science et la mesure.", achievements: ["Redressement de la guerre de Cent Ans", "Fondation de la bibliothèque du Louvre", "Stabilisation de la monnaie"] },
+            { id: 35, name: "Bertrand du Guesclin", era: "Moyen Âge", dates: "1320 – 1380", role: "Connétable de France", bio: "Brillant stratège de la guerre de Cent Ans, il chassa méthodiquement les Anglais du sol français grâce à la tactique de la terre déserte.", quote: "Je moururai en combattant les ennemis de la couronne.", achievements: ["Victoires majeures contre les Anglais", "Titre de Connétable de France", "Libération d'une grande partie du territoire"] },
+            { id: 36, name: "Christine de Pizan", era: "Moyen Âge", dates: "1364 – 1430", role: "Écrivaine et philosophe", bio: "Considérée comme la première femme de lettres française à vivre de sa plume, pionnière du féminisme et de la défense des femmes.", quote: "Homme ou femme, l'esprit n'a point de sexe.", achievements: ["Rédaction de La Cité des dames", "Œuvres poétiques et politiques", "Pionnière de l'humanisme littéraire"] },
+            { id: 37, name: "Jeanne d'Arc", era: "Moyen Âge", dates: "1412 – 1431", role: "Héroïne nationale et cheffe de guerre", bio: "La Pucelle d'Orléans redonna espoir à la France pendant la guerre de Cent Ans, fit sacrer Charles VII à Reims avant de mourir sur le bûcher à Rouen.", quote: "Les hommes bataillent, mais c'est Dieu qui donne la victoire.", achievements: ["Levée du siège d'Orléans (1429)", "Sacre de Charles VII à Reims", "Symbole éternel de la résistance française"] },
+            { id: 38, name: "Charles VII le Victorieux", era: "Moyen Âge", dates: "1403 – 1461", role: "Roi de France", bio: "Il acheva la reconquête de la France face aux Anglais à la fin de la guerre de Cent Ans et créa la première armée permanente moderne.", quote: "La patrie triomphe enfin de ses divisions.", achievements: ["Fin de la guerre de Cent Ans (1453)", "Création des compagnies d'ordonnance", "Institution de la Pragmatic Sanction"] },
+            { id: 39, name: "Jacques Coeur", era: "Moyen Âge", dates: "1395 – 1456", role: "Grand argentier du roi", bio: "Marchand visionnaire et financier de Charles VII, il développa le commerce maritime international et fit fortune en Orient.", quote: "À cœur vaillant rien d'impossible, à marchand hardi tout profit.", achievements: ["Création d'une flotte marchande française", "Financement de la reconquête normande", "Construction du palais de Bourges"] },
+            { id: 40, name: "Louis XI", era: "Moyen Âge", dates: "1423 – 1483", role: "Roi de France (l'Universelle Aragne)", bio: "Souverain rusé et pragmatique, il brisa la puissance des grands ducs de Bourgogne (notamment Charles le Téméraire) et unifia le territoire national.", quote: "Diviser pour régner est la sagesse des rois.", achievements: ["Annexion de la Bourgogne et de la Provence", "Développement des postes royales", "Affermissement définitif de l'État moderne"] },
+            
+            // Renaissance & Ancien Régime
+            { id: 41, name: "François Ier", era: "Renaissance & Ancien Régime", dates: "1494 – 1547", role: "Roi de France et protecteur des arts", bio: "Souverain emblématique de la Renaissance française, mécène de Léonard de Vinci, vainqueur à Marignan et bâtisseur de châteaux.", quote: "Tout est perdu fors l'honneur.", achievements: ["Introduction de la Renaissance en France", "Fondation du Collège de France", "Ordonnance de Villers-Cotterêts (1539)"] },
+            { id: 42, name: "Léonard de Vinci", era: "Renaissance & Ancien Régime", dates: "1452 – 1519", role: "Peintre, inventeur et génie universel", bio: "Invité par François Ier à Amboise, il passa ses dernières années au château du Clos Lucé, apportant son génie visionnaire à la cour de France.", quote: "La simplicité est la sophistication suprême.", achievements: ["Chef-d'œuvre de la Joconde apporté en France", "Études d'ingénierie et d'architecture", "Projets de la cité idéale de Romorantin"] },
+            { id: 43, name: "Marguerite de Navarre", era: "Renaissance & Ancien Régime", dates: "1492 – 1549", role: "Reine de Navarre et femme de lettres", bio: "Sœur de François Ier, protectrice des humanistes et des réformateurs, autrice du fameux recueil de nouvelles L'Heptaméron.", quote: "L'amour de la vérité éclaire l'esprit.", achievements: ["Rédaction de L'Heptaméron", "Soutien aux intellectuels persécutés", "Diplomatie humaniste"] },
+            { id: 44, name: "Ambroise Paré", era: "Renaissance & Ancien Régime", dates: "1510 – 1590", role: "Chirurgien et anatomiste", bio: "Père de la chirurgie moderne, il révolutionna les pratiques médicales sur les champs de bataille en abandonnant la cautérisation au fer rouge.", quote: "Je le pansai, Dieu le guérit.", achievements: ["Invention de la ligature des artères", "Amélioration des prothèses chirurgicales", "Chirurgien de quatre rois de France"] },
+            { id: 45, name: "Michel de L'Hospital", era: "Renaissance & Ancien Régime", dates: "1505 – 1573", role: "Chancelier de France", bio: "Humaniste et grand défenseur de la tolérance civile durant les guerres de Religion, prônant la concorde entre catholiques et protestants.", quote: "Oublions ces mots diaboliques de partis : luthériens, huguenots, catholiques.", achievements: ["Édit de Romorantin", "Pacification mesurée des tensions religieuses", "Défense de l'indépendance de la justice"] },
+            { id: 46, name: "Nostradamus", era: "Renaissance & Ancien Régime", dates: "1503 – 1566", role: "Apothicaire et astrologue", bio: "Médecin et auteur des célèbres Centuries, prophéties énigmatiques qui traversèrent les siècles.", quote: "Le futur se lit dans la trame du présent.", achievements: ["Publication des Prophéties (1555)", "Soins durant les épidémies de peste", "Médecin ordinaire du roi"] },
+            { id: 47, name: "Catherine de Médicis", era: "Renaissance & Ancien Régime", dates: "1519 – 1589", role: "Reine mère et régente de France", bio: "Figure centrale des guerres de Religion, elle gouverna la France avec un grand sens politique au milieu des factions rivales.", quote: "Il faut savoir plier le genou quand la tempête est trop forte.", achievements: ["Mécénat artistique (palais des Tuileries)", "Tentatives de conciliation religieuse", "Préservation de la dynastie des Valois"] },
+            { id: 48, name: "Michel de Montaigne", era: "Renaissance & Ancien Régime", dates: "1533 – 1592", role: "Philosophe et essayiste", bio: "Père de l'essai moderne, maire de Bordeaux, explorateur de la condition humaine dans son chef-d'œuvre Les Essais.", quote: "Que sais-je ?", achievements: ["Rédaction des Essais", "Humanisme sceptique et tolérant", "Réflexion sur l'éducation et l'altérité"] },
+            { id: 49, name: "Henri IV", era: "Renaissance & Ancien Régime", dates: "1553 – 1610", role: "Roi de France et de Navarre", bio: "Le Bon Roi Henri mit fin aux guerres de Religion en signant l'édit de Nantes en 1598 et veilla au bien-être de ses sujets.", quote: "Si Dieu me prête vie, je ferai qu'il n'y aura point laboureur en mon royaume qui n'ait les moyens d'avoir une poule dans son pot.", achievements: ["Édit de Nantes (1598)", "Rétablissement de l'économie et de l'agriculture", "Construction de la place des Vosges"] },
+            { id: 50, name: "Maximilien de Béthune (Sully)", era: "Renaissance & Ancien Régime", dates: "1560 – 1641", role: "Ministre d'Henri IV", bio: "Duc et pair, grand argentier du royaume, il assainit les finances publiques et développa l'agriculture (« Labourage et pâturage sont les deux mamelles de la France »).", quote: "Labourage et pâturage sont les deux mamelles de la France.", achievements: ["Assainissement de la dette royale", "Développement des grands axes routiers et canaux", "Réorganisation des fortifications"] },
+            { id: 51, name: "François de Malherbe", era: "Renaissance & Ancien Régime", dates: "1555 – 1628", role: "Poète et grammairien", bio: "Réformateur rigoureux de la langue et de la versification françaises, instaurant clarté et mesure classique.", quote: "Enfin Malherbe vint, et, premier en France, fit sentir dans les vers une juste cadence.", achievements: ["Codification de la poésie classique", "Rigueur grammaticale", "Soutien à la création littéraire"] },
+            { id: 52, name: "Le Caravage", era: "Renaissance & Ancien Régime", dates: "1571 – 1610", role: "Peintre visionnaire", bio: "Maître du clair-obscur, réfugié à la fin de sa vie à Malte et en Sicile, son influence marqua durablement la peinture française du XVIIe siècle.", quote: "La lumière naît toujours de l'ombre la plus profonde.", achievements: ["Révolution du clair-obscur", "Réalisme pictural percutant", "Influence sur les peintres caravagesques français"] },
+            { id: 53, name: "Louis XIII", era: "Renaissance & Ancien Régime", dates: "1601 – 1643", role: "Roi de France", bio: "Souverain travailleur et pieux, il s'allia durablement avec le cardinal de Richelieu pour affirmer l'autorité royale en France et en Europe.", quote: "Le service de l'État passe avant toute affection personnelle.", achievements: ["Prise de La Rochelle", "Création de l'Académie française", "Renforcement de l'État central"] },
+            { id: 54, name: "Cardinal de Richelieu", era: "Renaissance & Ancien Régime", dates: "1585 – 1642", role: "Principal ministre de Louis XIII", bio: "L'Éminence rouge consolida l'absolutisme monarchique, affaiblit la noblesse rebelle et les protestants, et fonda l'Académie française.", quote: "Le pouvoir politique exige fermeté et raison d'État.", achievements: ["Fondation de l'Académie française", "Soumission de la noblesse frondeuse", "Affirmation de la puissance française en Europe"] },
+            { id: 55, name: "René Descartes", era: "Renaissance & Ancien Régime", dates: "1596 – 1650", role: "Philosophe et mathématicien", bio: "Père de la philosophie moderne et de la géométrie analytique, il révolutionna la pensée par le doute méthodique.", quote: "Je pense, donc je suis.", achievements: ["Discours de la méthode", "Invention du repère cartésien", "Révolution philosophique du rationalisme"] },
+            { id: 56, name: "Pierre Corneille", era: "Renaissance & Ancien Régime", dates: "1606 – 1684", role: "Dramaturge et poète", bio: "Auteur du Cid et de tragédies flamboyantes exaltant la volonté humaine, l'honneur et le dépassement de soi.", quote: "À vaincre sans péril, on triomphe sans gloire.", achievements: ["Création du chef-d'œuvre Le Cid", "Renouvellement de la tragédie classique", "Élection à l'Académie française"] },
+            { id: 57, name: "Blaise Pascal", era: "Renaissance & Ancien Régime", dates: "1623 – 1662", role: "Mathématicien, physicien et philosophe", bio: "Génie précoce, inventeur de la première machine à calculer, physicien de la pression atmosphérique et auteur des Provinciales et des Pensées.", quote: "L'homme n'est qu'un roseau, le plus faible de la nature; mais c'est un roseau pensant.", achievements: ["Invention de la machine arithmétique (la pascaline)", "Démonstration de la pression atmosphérique", "Les Pensées et Les Provinciales"] },
+            { id: 58, name: "Cyrano de Bergerac", era: "Renaissance & Ancien Régime", dates: "1619 – 1655", role: "Écrivain et bretteur", bio: "Libertin audacieux, précurseur de la science-fiction avec ses récits de voyages sur la Lune et le Soleil.", quote: "C'est un roc ! C'est un pic ! C'est un cap ! Que dis-je, c'est un cap ? C'est une péninsule !", achievements: ["Voyages comiques aux États et Empires de la Lune", "Œuvres théâtrales satiriques", "Esprit frondeur et indépendant"] },
+            { id: 59, name: "Cardinal Mazarin", era: "Renaissance & Ancien Régime", dates: "1602 – 1661", role: "Principal ministre sous la régence d'Anne d'Autriche", bio: "Fin diplomate italien, il négocia les traités de Westphalie et surmonta les redoutables troubles de la Fronde.", quote: "Le temps et moi en valons bien un autre.", achievements: ["Traités de Westphalie (1648)", "Victoire sur la Fronde", "Constitution d'une immense collection d'art"] },
+            { id: 60, name: "Nicolas Poussin", era: "Renaissance & Ancien Régime", dates: "1594 – 1665", role: "Peintre classique", bio: "Maître absolu du classicisme pictural français, inspiré par l'Antiquité et la rigueur de la composition.", quote: "La peinture n'est point un vain amusement, c'est une noble science.", achievements: ["Chefs-d'œuvre du classicisme (Les Bergers d'Arcadie)", "Influence majeure sur l'Académie royale", "Maîtrise de la lumière et du dessin"] },
+            { id: 61, name: "Molière (Jean-Baptiste Poquelin)", era: "Renaissance & Ancien Régime", dates: "1622 – 1673", role: "Dramaturge et comédien", bio: "Le plus grand auteur comique français, il croqua les travers de la société de son temps avec génie dans Le Tartuffe, L'Avare ou Le Misanthrope.", quote: "Le théâtre est un miroir des mœurs.", achievements: ["Création de la Comédie-Française (troupe)", "Chefs-d'œuvre immortels de la comédie", "Critique sociale incisive et subtile"] },
+            { id: 62, name: "Jean Racine", era: "Renaissance & Ancien Régime", dates: "1639 – 1699", role: "Dramaturge tragique", bio: "Maître incontesté de la tragédie classique, explorateur des passions amoureuses et destructrices dans Phèdre, Andromaque ou Britannicus.", quote: "La passion fait souffrir, mais elle révèle l'âme humaine.", achievements: ["Chefs-d'œuvre de la tragédie classique", "Historiographe du roi Louis XIV", "Perfection de l'alexandrin tragique"] },
+            { id: 63, name: "Jean de La Fontaine", era: "Renaissance & Ancien Régime", dates: "1621 – 1695", role: "Poète et fabuliste", bio: "Immortaliser les animaux pour instruire les hommes à travers ses célèbres Fables pleines de sagesse et d'ironie.", quote: "Rien ne sert de courir ; faut partir à point.", achievements: ["Publication des Fables immortelles", "Chef-d'œuvre de la poésie narrative", "Élection à l'Académie française"] },
+            { id: 64, name: "Louis XIV (Le Roi-Soleil)", era: "Renaissance & Ancien Régime", dates: "1638 – 1715", role: "Roi de France", bio: "Symbole de l'absolutisme triomphant, il fit construire le somptueux château de Versailles et porta la France au zénith de son rayonnement culturel.", quote: "L'État, c'est moi.", achievements: ["Construction du château de Versailles", "Apogée du Grand Siècle et des arts", "Extension territoriale du royaume"] },
+            { id: 65, name: "Jean-Baptiste Colbert", era: "Renaissance & Ancien Régime", dates: "1619 – 1683", role: "Ministre des Finances et de la Marine", bio: "Architecte du mercantilisme (le colbertisme), il développa les manufactures royales, la marine de guerre et le commerce colonial.", quote: "Le commerce est la source de la puissance financière de l'État.", achievements: ["Création des manufactures royales (Gobelins)", "Réforme du code noir et de la justice", "Développement de la marine et des colonies"] },
+            { id: 66, name: "Sébastien Le Prestre de Vauban", era: "Renaissance & Ancien Régime", dates: "1633 – 1707", role: "Maréchal de France et architecte militaire", bio: "Génie des fortifications, il ceintura la France de son « Ceinture de fer » imprenable et proposa la Dîme royale pour plus d'équité.", quote: "Ville assiégée, ville prise.", achievements: ["Réseau de fortifications classé à l'UNESCO", "Invention de la méthode de siège par tranchées", "Traité de la Dîme royale"] },
+            { id: 67, name: "Charles Perrault", era: "Renaissance & Ancien Régime", dates: "1628 – 1703", role: "Écrivain et conteur", bio: "Il figea pour l'éternité les contes populaires de notre enfance : Le Cendrillon, Le Petit Chaperon rouge, Le Chat botté.", quote: "La beauté des contes réside dans la vérité cachée de leurs morales.", achievements: ["Publication des Contes de ma mère l'Oye", "Querelle des Anciens et des Modernes", "Académicien et bâtisseur"] },
+            { id: 68, name: "Madame de Sévigné", era: "Renaissance & Ancien Régime", dates: "1626 – 1696", role: "Écrivaine épistolière", bio: "Ses célèbres Lettres à sa fille constituent un témoignage littéraire unique et raffiné sur la vie mondaine sous Louis XIV.", quote: "Les lettres sont l'image de l'entretien des absents.", achievements: ["Chef-d'œuvre de la littérature épistolaire", "Peinture exquise de la société classique", "Style vif et spirituel"] },
+            { id: 69, name: "André Le Nôtre", era: "Renaissance & Ancien Régime", dates: "1613 – 1700", role: "Jardinier et paysagiste du roi", bio: "Créateur des somptueux jardins à la française, notamment ceux de Versailles, de Vaux-le-Vicomte et des Tuileries.", quote: "La nature ordonnée par l'esprit devient un chef-d'œuvre.", achievements: ["Conception des jardins de Versailles", "Maîtrise de la perspective paysagère", "Modèle universel d'art des jardins"] },
+            { id: 70, name: "Jean-Baptiste Lully", era: "Renaissance & Ancien Régime", dates: "1632 – 1687", role: "Compositeur et surintendant de la musique", bio: "Créateur de la tragédie lyrique française et codirecteur de l'Opéra, il façonna la musique de la cour de Louis XIV.", quote: "La musique exprime ce que les mots ne peuvent taire.", achievements: ["Création de la tragédie en musique", "Collaboration étroite avec Molière", "Direction de la Musique de la Chambre"] },
+            { id: 71, name: "François de Salignac de La Mothe-Fénelon", era: "Renaissance & Ancien Régime", dates: "1651 – 1715", role: "Archevêque et écrivain", bio: "Précepteur du duc de Bourgogne, auteur des Aventures de Télémaque, critique clairvoyant de l'absolutisme excessif de Louis XIV.", quote: "Un peuple ruiné ne fait plus de sujets fidèles.", achievements: ["Rédaction des Aventures de Télémaque", "Pédagogie novatrice pour les princes", "Défense des humbles et de la paix"] },
+            { id: 72, name: "Antoine Galland", era: "Renaissance & Ancien Régime", dates: "1646 – 1715", role: "Orientaliste et numismate", bio: "Il offrit à l'Europe la première traduction des Mille et Une Nuits, ouvrant l'imaginaire occidental aux splendeurs de l'Orient.", quote: "Le conte enchante l'esprit et abolit les frontières.", achievements: ["Traduction majeure des Mille et Une Nuits", "Introduction du conte oriental en Occident", "Recherche archéologique"] },
+            { id: 73, name: "Maréchal de Villars", era: "Renaissance & Ancien Régime", dates: "1653 – 1734", role: "Général et maréchal de France", bio: "Brillant commandant militaire qui sauva la France de l'invasion à la fin du règne de Louis XIV grâce à la victoire de Denain.", quote: "Audace et constance triomphent du nombre.", achievements: ["Victoire décisive de Denain (1712)", "Défense des frontières du royaume", "Dernier grand maréchal du Roi-Soleil"] },
+            { id: 74, name: "Montesquieu (Charles de Secondat)", era: "Renaissance & Ancien Régime", dates: "1689 – 1755", role: "Philosophe et écrivain politique", bio: "Penseur majeur des Lumières, théoricien de la séparation des pouvoirs (législatif, exécutif, judiciaire) dans De l'esprit des lois.", quote: "Pour qu'on ne puisse abuser du pouvoir, il faut que, par la disposition des choses, le pouvoir arrête le pouvoir.", achievements: ["Théorie de la séparation des pouvoirs", "Les Lettres persanes", "Fondement des démocraties modernes"] },
+            { id: 75, name: "Voltaire (François-Marie Arouet)", era: "Renaissance & Ancien Régime", dates: "1694 – 1778", role: "Philosophe et chef de file des Lumières", bio: "Défenseur acharné de la liberté d'expression, de la tolérance et combattant de l'intolérance religieuse (affaire Calas).", quote: "Je ne suis pas d'accord avec ce que vous dites, mais je battrai jusqu'à la mort pour que vous puissiez le dire.", achievements: ["Combat contre l'intolérance et le fanatisme", "Œuvre philosophique immense (Candide)", "Défense des victimes d'erreurs judiciaires"] },
+            { id: 76, name: "Émilie du Châtelet", era: "Renaissance & Ancien Régime", dates: "1706 – 1749", role: "Mathématicienne et physicienne", bio: "Femme de science d'exception, traductrice et commentatrice des Principia mathematica de Newton en français.", quote: "J'ai besoin d'étudier pour vivre heureuse.", achievements: ["Traduction de Newton toujours référence", "Travaux sur la nature du feu et de l'énergie", "Pionnière des sciences physiques"] },
+            { id: 77, name: "Jean-Jacques Rousseau", era: "Renaissance & Ancien Régime", dates: "1712 – 1778", role: "Philosophe et écrivain", bio: "Penseur du contrat social, de la souveraineté du peuple et de l'éducation naturelle (Émile), figure majeure des Lumières.", quote: "L'homme est né libre, et partout il est dans les fers.", achievements: ["Du contrat social", "Les Confessions", "Réflexion moderne sur la pédagogie et la démocratie"] },
+            { id: 78, name: "Denis Diderot", era: "Renaissance & Ancien Régime", dates: "1713 – 1784", role: "Philosophe et encyclopédiste", bio: "Directeur de la monumentale Encyclopédie avec D'Alembert, œuvre maîtresse de la diffusion des savoirs des Lumières.", quote: "Il est important de tout examiner, de tout remuer sans exception ni ménagement.", achievements: ["Direction de l'Encyclopédie", "Renouvellement de la critique d'art", "Philosophie matérialiste et audacieuse"] },
+            { id: 79, name: "Jean le Rond d'Alembert", era: "Renaissance & Ancien Régime", dates: "1717 – 1783", role: "Mathématicien et philosophe", bio: "Co-directeur de l'Encyclopédie, éminent mathématicien et physicien, académicien influent.", quote: "La raison est à l'esprit ce que la lumière est aux yeux.", achievements: ["Discours préliminaire de l'Encyclopédie", "Travaux sur les équations différentielles", "Secrétaire perpétuel de l'Académie française"] },
+            { id: 80, name: "Georges-Louis Leclerc de Buffon", era: "Renaissance & Ancien Régime", dates: "1707 – 1788", role: "Naturaliste et biologiste", bio: "Auteur de la monumentale Histoire naturelle, générale et particulière, qui popularisa la science de la nature au XVIIIe siècle.", quote: "Le style est l'homme même.", achievements: ["Rédaction de l'Histoire naturelle", "Direction du Jardin du Roi", "Pionnier de la géologie historique"] },
+            { id: 81, name: "Madame de Pompadour", era: "Renaissance & Ancien Régime", dates: "1721 – 1764", role: "Favorite et mécène de Louis XV", bio: "Femme d'influence politique et grande protectrice des arts, des lettres (les Encyclopédistes) et de la manufacture de Sèvres.", quote: "Le goût des arts est l'âme d'une nation civilisée.", achievements: ["Soutien actif aux Encyclopédistes", "Développement de la porcelaine de Sèvres", "Mécénat architectural et pictural"] },
+            { id: 82, name: "Pierre Beaumarchais", era: "Renaissance & Ancien Régime", dates: "1732 – 1799", role: "Dramaturge, espion et aventurier", bio: "Auteur des pièces immortelles Le Barbier de Séville et Le Mariage de Figaro, qui annoncèrent l'esprit frondeur de la Révolution.", quote: "Sans la liberté de blâmer, il n'est point d'éloge flatteur.", achievements: ["Le Mariage de Figaro", "Soutien logistique secret aux insurgés américains", "Fondation de la société des auteurs"] },
+            { id: 83, name: "Louis XVI", era: "Renaissance & Ancien Régime", dates: "1754 – 1793", role: "Roi de France", bio: "Dernier monarque de l'Ancien Régime, homme instruit mais dépassé par l'effervescence de la Révolution française.", quote: "Je meurs innocent de tous les crimes qu'on m'impure.", achievements: ["Soutien à l'indépendance américaine", "Tentatives de réformes financières (Turgot, Necker)", "Convocation des États généraux"] },
+            { id: 84, name: "Marie-Antoinette", era: "Renaissance & Ancien Régime", dates: "1755 – 1793", role: "Reine de France", bio: "Archiduchesse d'Autriche devenue reine de France, tragiquement emportée par la tourmente révolutionnaire.", quote: "Courage, j'ai traversé bien des épreuves pour en arriver là.", achievements: ["Icône de la mode et des arts de cour", "Aménagement du Hameau de la Reine", "Dignité lors de son procès et de son supplice"] },
+            { id: 85, name: "Antoine Laurent de Lavoisier", era: "Renaissance & Ancien Régime", dates: "1743 – 1794", role: "Chimiste et père de la chimie moderne", bio: "Il découvrit le rôle de l'oxygène dans la combustion, réfuta la théorie du phlogistique et posa les bases de la nomenclature chimique moderne.", quote: "Rien ne se perd, rien ne se crée, tout se transforme.", achievements: ["Fondation de la chimie moderne", "Loi de conservation de la masse", "Création du système métrique"] },
+            { id: 86, name: "Marquis de Lafayette", era: "Renaissance & Ancien Régime", dates: "1757 – 1834", role: "Héros des deux mondes et général", bio: "Engagé dans la guerre d'indépendance américaine, commandant de la Garde nationale française, artisan de la Déclaration des droits de l'homme.", quote: "Pour qu'une nation soit libre, il suffit qu'elle le veuille.", achievements: ["Engagement dans la guerre d'indépendance américaine", "Co-rédaction de la Déclaration des droits de l'homme", "Commandement de la Garde nationale"] },
+            { id: 87, name: "Jean-Paul Marat", era: "Renaissance & Ancien Régime", dates: "1743 – 1793", role: "Révolutionnaire et journaliste", bio: "Surnommé l'Ami du peuple, ardent tribun radical de la Révolution française, assassiné dans sa baignoire par Charlotte Corday.", quote: "Il faut abattre la tête des tyrans pour sauver la République.", achievements: ["Journal L'Ami du peuple", "Rôle central au club des Cordeliers", "Figure radicale de la Terreur"] },
+            { id: 88, name: "Olympe de Gouges", era: "Renaissance & Ancien Régime", dates: "1748 – 1793", role: "Femme de lettres et féministe", bio: "Pionnière du féminisme français, autrice de la Déclaration des droits de la femme et de la citoyenne en 1791.", quote: "La femme a le droit de monter à l'échafaud ; elle doit avoir de même celui de monter à la tribune.", achievements: ["Rédaction de la Déclaration des droits de la femme", "Combats contre l'esclavage des Noirs", "Écrits politiques engagés"] },
+            { id: 89, name: "Maximisation de Robespierre", era: "Révolution & Empire", dates: "1758 – 1794", role: "Avocat et homme politique révolutionnaire", bio: "Figure centrale et controversée de la Révolution, surnommé l'Incorruptible, artisan principal de la période de la Terreur.", quote: "Le gouvernement de la République est le despotisme de la liberté contre la tyrannie.", achievements: ["Rôle clé au Comité de salut public", "Abolition de l'esclavage dans les colonies (1794)", "Fermeté républicaine absolue"] },
+            { id: 90, name: "Georges Jacques Danton", era: "Révolution & Empire", dates: "1759 – 1794", role: "Ministre de la Justice et tribun", bio: "Orateur enflammé de la Révolution, il galvanisa les troupes en 1792 face aux armées coalisées (« De l'audace, encore de l'audace, toujours de l'audace »).", quote: "De l'audace, encore de l'audace, toujours de l'audace, et la France est sauvée !", achievements: ["Création du Tribunal révolutionnaire", "Mobilisation générale de 1792", "Discours mémorables de la Convention"] },
+            { id: 91, name: "Camille Desmoulins", era: "Révolution & Empire", dates: "1760 – 1794", role: "Journaliste et révolutionnaire", bio: "Il appela le peuple aux armes au Palais-Royal le 12 juillet 1789, brandissant une feuille d'arbre comme cocarde.", quote: "Aux armes ! Citoyens, formez vos bataillons !", achievements: ["Appel à la prise de la Bastille", "Journal Le Vieux Cordelier", "Plaidoyer pour la clémence à la fin de sa vie"] },
+            { id: 92, name: "Lazare Carnot", era: "Révolution & Empire", dates: "1753 – 1823", role: "Organisateur de la victoire", bio: "Mathématicien et général, il organisa les armées de la République qui repoussèrent victorieusement les coalitions européennes.", quote: "L'organisation est la clé de la victoire.", achievements: ["Levée en masse des armées révolutionnaires", "Victoires de la Ire République", "Membre du Directoire"] },
+            { id: 93, name: "Joseph-Ignace Guillotin", era: "Révolution & Empire", dates: "1738 – 1814", role: "Médecin et député", bio: "Il proposa l'usage d'une machine de décapitation humanitaire pour garantir l'égalité des peines sans distinction de classe sociale.", quote: "Avec ma machine, je vous fais sauter la tête en un clin d'œil, et vous ne souffrez point.", achievements: ["Introduction de la guillotine humanitaire", "Député aux États généraux", "Travaux sur la santé publique"] },
+            { id: 94, name: "Jacques-Louis David", era: "Révolution & Empire", dates: "1748 – 1825", role: "Peintre néoclassique", bio: "Peintre officiel de la Révolution puis de Napoléon, immortalisant Le Serment des Horaces, La Mort de Marat et Le Sacre de Napoléon.", quote: "L'art doit élever l'âme et célébrer la grandeur civique.", achievements: ["Chefs-d'œuvre du néoclassicisme", "Immortalisation de l'épopée napoléonienne", "Réorganisation des beaux-arts"] },
+            { id: 95, name: "Napoléon Bonaparte", era: "Révolution & Empire", dates: "1769 – 1821", role: "Général, Consul puis Empereur des Français", bio: "Chef militaire hors du pair, il modernisa l'administration française (Code civil, lycées, préfectures) et bâtit un vaste empire européen.", quote: "Impossible n'est pas français.", achievements: ["Création du Code civil (Code Napoléon)", "Victoires éclatantes (Austerlitz, Iéna)", "Modernisation institutionnelle de la France"] },
+            { id: 96, name: "Joséphine de Beauharnais", era: "Révolution & Empire", dates: "1763 – 1814", role: "Impératrice des Français", bio: "Première épouse de Napoléon Ier, reine d'élégance et de grâce, qui fit de la Malmaison un haut lieu des arts et de la botanique.", quote: "L'élégance est l'art de ne point se faire remarquer tout en marquant les esprits.", achievements: ["Influence majeure sur la mode néoclassique", "Collection botanique rare à la Malmaison", "Soutien constant à l'Empereur"] },
+            { id: 97, name: "Maréchal Ney", era: "Révolution & Empire", dates: "1769 – 1815", role: "Maréchal d'Empire (Le Brave des Braves)", bio: "Légendaire pour son intrépidité au combat, il commanda l'arrière-garde lors de la désastreuse campagne de Russie.", quote: "Venez voir comment meurt un maréchal de France !", achievements: ["Héroïsme à Eylau et Moskowa", "Titre de Prince de la Moskowa", "Commandement de la Garde impériale"] },
+            { id: 98, name: "Jean-Baptiste Bernadotte", era: "Révolution & Empire", dates: "1763 – 1844", role: "Maréchal d'Empire puis Roi de Suède", bio: "De simple soldat à maréchal, il devint roi de Suède et de Norvège sous le nom de Charles XIV Jean.", quote: "Le destin sourit à ceux qui savent saisir l'instant.", achievements: ["Carrière militaire fulgurante", "Fondation de la dynastie royale suédoise actuelle", "Victoires de la coalition contre Napoléon"] },
+            { id: 99, name: "François-René de Chateaubriand", era: "XIXe Siècle", dates: "1768 – 1848", role: "Écrivain et diplomate", bio: "Père du romantisme français, auteur des Mémoires d'outre-tombe et du Génie du christianisme, voyageur et visionnaire.", quote: "Mon pays est partout où il y a de la grandeur et de la liberté.", achievements: ["Mémoires d'outre-tombe", "Renaissance du sentiment romantique", "Ambassadeur et ministre des Affaires étrangères"] },
+            { id: 100, name: "Germaine de Staël (Madame de Staël)", era: "XIXe Siècle", dates: "1766 – 1817", role: "Romancière et essayiste", bio: "Intellectuelle brillante, opposante farouche au despotisme napoléonien, elle introduisit le romantisme en Europe par ses essais sur l'Allemagne.", quote: "La liberté est le premier des biens, la source de tous les talents.", achievements: ["Diffusion des idées romantiques en Europe", "Salon littéraire influent de Coppet", "Essais littéraires novateurs"] },
+            { id: 101, name: "Louis XVIII", era: "XIXe Siècle", dates: "1755 – 1824", role: "Roi de France", bio: "Souverain de la Restauration, il octroya la Charte constitutionnelle de 1814 cherchant à concilier l'Ancien Régime et les acquis de la Révolution.", quote: "L'union et l'oubli sont les seuls voeux que je forme pour la France.", achievements: ["Octroi de la Charte de 1814", "Retour à la paix civile après l'Empire", "Maintien des libertés parlementaires"] },
+            { id: 102, name: "Jean-François Champollion", era: "XIXe Siècle", dates: "1790 – 1832", role: "Égyptologue et linguiste", bio: "Il déchifra les hiéroglyphes égyptiens en 1822 grâce à la pierre de Rosette, fondant la science moderne de l'égyptologie.", quote: "Je tiens mon affaire !", achievements: ["Déchiffrement des hiéroglyphes (1822)", "Création du département égyptien du Louvre", "Père de l'égyptologie scientifique"] },
+            { id: 103, name: "André-Marie Ampère", era: "XIXe Siècle", dates: "1775 – 1836", role: "Physicien et mathématicien", bio: "Pionnier de l'électromagnétisme, son nom a été donné à l'unité de mesure du courant électrique (l'ampère).", quote: "Observer pour comprendre, expérimenter pour prouver.", achievements: ["Découverte de l'électrodynamique", "Invention du télégraphe électrique (bases)", "Création de l'unité de l'ampère"] },
+            { id: 104, name: "Eugène Delacroix", era: "XIXe Siècle", dates: "1798 – 1863", role: "Peintre chef de file du romantisme", bio: "Maître de la couleur et du mouvement, il immortalisa le peuple soulevé pour la liberté dans son tableau La Liberté guidant le peuple (1830).", quote: "La peinture est un pont entre l'âme et le monde.", achievements: ["La Liberté guidant le peuple", "Voyage inspirant au Maroc", "Chef-d'œuvre de la peinture romantique"] },
+            { id: 105, name: "Victor Hugo", era: "XIXe Siècle", dates: "1802 – 1885", role: "Écrivain, poète et homme politique", bio: "Immense géant de la littérature française, auteur des Misérables, de Notre-Dame de Paris, infatigable défenseur de la justice et de la République.", quote: "Demain, l'aube se lèvera splendide et libre.", achievements: ["Les Misérables et Notre-Dame de Paris", "Combat contre la peine de mort", "Immense poésie lyrique et politique"] },
+            { id: 106, name: "Honoré de Balzac", era: "XIXe Siècle", dates: "1799 – 1850", role: "Romancier", bio: "Créateur de la Comédie humaine, vaste fresque décrivant avec réalisme et acuité toutes les strates de la société de son époque.", quote: "Le secret des grandes fortunes sans cause apparente est un crime oublié, parce qu'il a été bien fait.", achievements: ["La Comédie humaine (plus de 90 romans)", "Peinture réaliste de la société bourgeoise", "Génie prolifique de l'écriture nocturne"] },
+            { id: 107, name: "Alexandre Dumas", era: "XIXe Siècle", dates: "1802 – 1870", role: "Romancier et dramaturge", bio: "Auteur des romans historiques les plus lus au monde : Les Trois Mousquetaires, Le Comte de Monte-Cristo, La Reine Margot.", quote: "Un pour tous, tous pour un !", achievements: ["Les Trois Mousquetaires et Le Comte de Monte-Cristo", "Création du Théâtre-Historique", "Immense succès populaire mondial"] },
+            { id: 108, name: "George Sand (Aurore Dupin)", era: "XIXe Siècle", dates: "1804 – 1876", role: "Romancière et féministe", bio: "Femme de lettres audacieuse, aux ménages et aux tenues anticonformistes, autrice de romans champêtres et engagés socialement.", quote: "Le travail est le lot de l'homme, l'art est son apanage.", achievements: ["Romans majeurs (La Mare au Diable)", "Défense des droits des femmes et des ouvriers", "Correspondance littéraire brillante"] },
+            { id: 109, name: "Alfred de Musset", era: "XIXe Siècle", dates: "1810 – 1857", role: "Poète et dramaturge romantique", bio: "Poète passionné et mélancolique, auteur de Lorenzaccio et des Nuits, symbole du mal du siècle romantique.", quote: "L'homme est un apprenti, la douleur est son maître.", achievements: ["Lorenzaccio (chef-d'œuvre théâtral)", "Les Nuits (poésie lyrique)", "Figure du romantisme frissonnant"] },
+            { id: 110, name: "Hector Berlioz", era: "XIXe Siècle", dates: "1803 – 1869", role: "Compositeur et chef d'orchestre", bio: "Génie de l'orchestration symphonique romantique, compositeur de la monumentale Symphonie fantastique.", quote: "La musique seule peut exprimer l'infini de l'âme.", achievements: ["Symphonie fantastique", "Renouvellement de l'orchestre moderne", "Critique musical visionnaire"] },
+            { id: 111, name: "Frédéric Chopin", era: "XIXe Siècle", dates: "1810 – 1849", role: "Compositeur et pianiste", bio: "Bien que né polonais, il passa l'essentiel de sa vie créative à Paris, produisant un répertoire pour piano d'une poésie infinie.", quote: "Rien ne peut remplacer le son d'un piano touché avec émotion.", achievements: ["Œuvre pour piano immortelle (nocturnes, valses)", "Salon parisien artistique d'exception", "Sublimation du romantisme musical"] },
+            { id: 112, name: "Eugène Viollet-le-Duc", era: "XIXe Siècle", dates: "1814 – 1879", role: "Architecte et restaurateur", bio: "Il restaura les grands monuments du patrimoine médiéval français, dont Notre-Dame de Paris, Carcassonne et le mont Saint-Michel.", quote: "Restaurer un édifice, ce n'est pas l'entretenir, c'est le rétablir dans un état complet.", achievements: ["Restauration de Notre-Dame de Paris", "Sauvetage de la cité de Carcassonne", "Dictionnaire raisonné de l'architecture française"] },
+            { id: 113, name: "Louis-Philippe Ier", era: "XIXe Siècle", dates: "1773 – 1850", role: "Roi des Français (la Monarchie de Juillet)", bio: "Le « Roi Citoyen », bourgeois et libéral, qui régna de 1830 à 1848 avant d'être emporté par la révolution de Février.", quote: "Le trône n'est point un fauteuil de velours, c'est un poste de devoir.", achievements: ["Création du musée historique de Versailles", "Développement des chemins de fer", "Conquête de l'Algérie (débuts)"] },
+            { id: 114, name: "Adolphe Thiers", era: "XIXe Siècle", dates: "1797 – 1877", role: "Historien et homme d'État", bio: "Premier président de la Troisième République, critique sévère de la Commune de Paris, historien de la Révolution et du Consulat.", quote: "La République sera conservatrice ou elle ne sera pas.", achievements: ["Pacification après la guerre de 1870", "Libération rapide du territoire national", "Rédacteur de l'Histoire du Consulat et de l'Empire"] },
+            { id: 115, name: "Louis Daguerre", era: "XIXe Siècle", dates: "1787 – 1851", role: "Inventeur et artiste", bio: "Inventeur du daguerréotype, premier procédé photographique viable qui révolutionna l'art et la mémoire visuelle.", quote: "La lumière dessine désormais le monde par elle-même.", achievements: ["Invention du daguerréotype (1839)", "Création du diorama", "Révolution de l'image visuelle"] },
+            { id: 116, name: "Alexis de Tocqueville", era: "XIXe Siècle", dates: "1805 – 1859", role: "Sociologue et homme politique", bio: "Analyste visionnaire de la démocratie moderne à travers son ouvrage De la démocratie en Amérique.", quote: "La démocratie et le socialisme ne s'entendent que par un mot : l'égalité.", achievements: ["De la démocratie en Amérique", "Analyse pionnière des sociétés égalitaires", "L'Ancien Régime et la Révolution"] },
+            { id: 117, name: "Charles Baudelaire", era: "XIXe Siècle", dates: "1821 – 1867", role: "Poète et critique d'art", bio: "Auteur des Fleurs du mal, il métamorphosa la laideur urbaine et la mélancolie en beauté poétique absolue (le Spleen de Paris).", quote: "Il faut être toujours ivre. Tout est là : c'est l'unique question.", achievements: ["Les Fleurs du mal (1857)", "Invention de la modernité poétique", "Critique d'art visionnaire"] },
+            { id: 118, name: "Gustave Flaubert", era: "XIXe Siècle", dates: "1821 – 1880", role: "Romancier", bio: "Styliste intransigeant, auteur de Madame Bovary, chef-d'œuvre du roman réaliste et psychologique.", quote: "Madame Bovary, c'est moi.", achievements: ["Madame Bovary et L'Éducation sentimentale", "Quête absolue du mot juste", "Maître du réalisme littéraire"] },
+            { id: 119, name: "Jules Verne", era: "XIXe Siècle", dates: "1828 – 1905", role: "Écrivain visionnaire", bio: "Père de la science-fiction moderne, auteur des Voyages extraordinaires (Le Tour du monde en 80 jours, Vingt mille lieues sous les mers).", quote: "Tout ce qu'un homme est capable d'imaginer, d'autres hommes seront capables de le réaliser.", achievements: ["Les Voyages extraordinaires", "Anticipation des inventions du XXe siècle", "Succès mondial intemporel"] },
+            { id: 120, name: "Louis Pasteur", era: "XIXe Siècle", dates: "1822 – 1895", role: "Chimiste et microbiologiste", bio: "Inventeur du vaccin contre la rage, découvreur de la pasteurisation, il sauva des millions de vies humaines.", quote: "La science n'a pas de patrie, mais le savant en a une.", achievements: ["Vaccin contre la rage (1885)", "Invention de la pasteurisation", "Rfutation de la génération spontanée"] },
+            { id: 121, name: "Claude Bernard", era: "XIXe Siècle", dates: "1813 – 1878", role: "Médecin et physiologiste", bio: "Père de la médecine expérimentale moderne, il théorisa la notion de milieu intérieur et l'homéostasie.", quote: "L'art c'est moi, la science c'est nous.", achievements: ["Introduction de la méthode expérimentale en médecine", "Découvertes sur le rôle du pancréas", "Principes de médecine expérimentale"] },
+            { id: 122, name: "Émile Zola", era: "XIXe Siècle", dates: "1840 – 1902", role: "Romancier et journaliste", bio: "Chef de file du naturalisme, auteur de la fresque des Rougon-Macquart et du célèbre « J'accuse… ! » lors de l'affaire Dreyfus.", quote: "La vérité est en marche et rien ne l'arrêtera plus.", achievements: ["Les Rougon-Macquart (20 romans)", "Lettre ouverte « J'accuse… ! »", "Combats pour la justice et la vérité"] },
+            { id: 123, name: "Paul Cézanne", era: "XIXe Siècle", dates: "1839 – 1906", role: "Peintre précurseur de l'art moderne", bio: "Par ses recherches sur les formes géométriques de la nature, il ouvrit la voie au cubisme et à la peinture moderne.", quote: "Je veux étonner Paris avec une pomme.", achievements: ["Renouvellement de la nature morte", "Maîtrise de la géométrie picturale", "Influence décisive sur Picasso et Matisse"] },
+            { id: 124, name: "Édouard Manet", era: "XIXe Siècle", dates: "1832 – 1883", role: "Peintre précurseur de l'impressionnisme", bio: "Il scandalisa les salons officiels avec Olympia et Le Déjeuner sur l'herbe, devenant le chef de file de la modernité picturale.", quote: "Il faut être de son temps et peindre ce que l'on voit.", achievements: ["Le Déjeuner sur l'herbe et Olympia", "Lien entre réalisme et impressionnisme", "Libération de la touche picturale"] },
+            { id: 125, name: "Claude Monet", era: "XIXe Siècle", dates: "1840 – 1926", role: "Peintre impressionniste", bio: "Chef de file de l'impressionnisme, immortalisant la lumière changeante des cathédrales, des gares et de ses célèbres Nymphéas à Giverny.", quote: "La couleur est mon jour, mon souci et mon délice.", achievements: ["Fondation de l'impressionnisme", "Les Nymphéas de Giverny", "Série des Cathédrales de Rouen"] },
+            { id: 126, name: "Pierre-Auguste Renoir", era: "XIXe Siècle", dates: "1841 – 1919", role: "Peintre impressionniste", bio: "Célébrateur de la joie de vivre, des bals populaires parisiens et de la sensualité lumineuse dans Le Bal du moulin de la Galette.", quote: "Le pain quotidien de mon art, c'est la joie de peindre.", achievements: ["Le Bal du moulin de la Galette", "Immense chef-d'œuvre de la lumière solaire", "Maîtrise du portrait impressionniste"] },
+            { id: 127, name: "Edgar Degas", era: "XIXe Siècle", dates: "1834 – 1917", role: "Peintre et sculpteur", bio: "Maître du mouvement et des scènes de ballet, observateur aigu de la vie parisienne et des courses de chevaux.", quote: "L'art ne vient pas quand on l'attend.", achievements: ["Séries de danseuses et de baigneuses", "Sculpture de la Petite danseuse de 14 ans", "Maîtrise du dessin et du pastel"] },
+            { id: 128, name: "Auguste Rodin", era: "XIXe Siècle", dates: "1840 – 1917", role: "Sculpteur de génie", bio: "Père de la sculpture moderne, auteur du Penseur, du Baiser et des Bourgeois de Calais, insufflant la vie à la matière.", quote: "La sculpture est l'art de la bosse et du creux.", achievements: ["Le Penseur et Les Bourgeois de Calais", "Porte de l'Enfer", "Renouvellement radical de la sculpture"] },
+            { id: 129, name: "Camille Claudel", era: "XIXe Siècle", dates: "1864 – 1943", role: "Sculptrice et dessinatrice", bio: "Artiste au talent incisif et passionné, autrice d'œuvres poignantes comme L'Âge mûr et La Valse.", quote: "Il y a toujours quelque chose d'absent qui me tourmente.", achievements: ["L'Âge mûr et La Valse", "Maîtrise technique et force expressive", "Reconnaissance tardive mais immense"] },
+            { id: 130, name: "Henri Poincaré", era: "XIXe Siècle", dates: "1854 – 1912", role: "Mathématicien, physicien et philosophe", bio: "Dernier savant universel, il posa les bases de la théorie de la relativité restreinte et fonda la topologie algébrique.", quote: "La science est construite de faits, comme une maison de pierres ; mais une accumulation de faits n'est pas plus une science qu'un tas de pierres n'est une maison.", achievements: ["Fondements de la topologie", "Travaux pionniers sur la relativité", "Philosophie des sciences"] },
+            { id: 131, name: "Pierre et Marie Curie", era: "XIXe Siècle", dates: "1859 – 1934", role: "Physiciens et chimistes", bio: "Pionniers de la radioactivité, Marie Curie fut la première femme prix Nobel et la seule à l'obtenir dans deux domaines scientifiques différents.", quote: "Rien dans la vie n'est à craindre, tout est à comprendre.", achievements: ["Découverte du radium et du polonium", "Deux prix Nobel (physique et chimie)", "Développement des unités mobiles de radiographie"] },
+            { id: 132, name: "Georges Méliès", era: "XIXe Siècle", dates: "1861 – 1938", role: "Pionnier du cinéma et illusionniste", bio: "Inventeur des effets spéciaux cinématographiques et auteur du célèbre film Le Voyage dans la Lune (1902).", quote: "Donner vie aux rêves sur pellicule est la magie suprême.", achievements: ["Le Voyage dans la Lune", "Invention des trucages optiques au cinéma", "Premier studio de cinéma à Montreuil"] },
+            
+            // XXe Siècle & Époque Contemporaine
+            { id: 133, name: "Jean Jaurès", era: "XXe Siècle & Époque Contemporaine", dates: "1859 – 1914", role: "Homme politique et pacifiste", bio: "Fondateur du journal L'Humanité, unificateur du socialisme français, ardent défenseur de la paix assassiné à la veille de la Première Guerre mondiale.", quote: "Le courage, c'est de chercher la vérité et de la dire.", achievements: ["Unification socialiste (SFIO)", "Fondation de L'Humanité", "Combats infatigables pour la paix internationale"] },
+            { id: 134, name: "Georges Clemenceau", era: "XXe Siècle & Époque Contemporaine", dates: "1841 – 1929", role: "Président du Conseil (Le Père la Victoire)", bio: "Surnommé le Tigre, il mena la France à la victoire lors de la Grande Guerre de 1914-1918.", quote: "La guerre : une affaire trop sérieuse pour la confier à des militaires.", achievements: ["Victoire de 1918", "Signature du traité de Versailles", "Soutien décisif à Dreyfus"] },
+            { id: 135, name: "Maréchal Foch", era: "XXe Siècle & Époque Contemporaine", dates: "1851 – 1929", role: "Maréchal de France et stratège", bio: "Commandant en chef des armées alliées en 1918, artisan de la coordination de la victoire finale contre l'Allemagne.", quote: "Mon centre cède, ma droite recule, situation excellente, j'attaque !", achievements: ["Victoire de la Marne", "Commandement suprême allié (1918)", "Signature de l'Armistice de Rethondes"] },
+            { id: 136, name: "Marcel Proust", era: "XXe Siècle & Époque Contemporaine", dates: "1871 – 1922", role: "Écrivain", bio: "Auteur du monumental roman À la recherche du temps perdu, exploration unique de la mémoire, du temps et de l'art.", quote: "Le seul véritable voyage, ce ne serait pas d'aller vers de nouveaux paysages, d'avoir d'autres yeux, mais de voir avec d'autres yeux.", achievements: ["À la recherche du temps perdu", "Chef-d'œuvre de l'introspection psychologique", "Analyse magistrale de la haute société"] },
+            { id: 137, name: "Henri Matisse", era: "XXe Siècle & Époque Contemporaine", dates: "1869 – 1954", role: "Peintre et sculpteur (maître du fauvisme)", bio: "Chef de file du fauvisme, révolutionnaire de la couleur pure et des papiers découpés.", quote: "Créer, c'est exprimer ce que l'on a en soi.", achievements: ["Fondation du fauvisme", "Papiers découpés monumentaux", "Chapelle de Vence"] },
+            { id: 138, name: "Maurice Ravel", era: "XXe Siècle & Époque Contemporaine", dates: "1875 – 1937", role: "Compositeur", bio: "Maître de l'orchestration impressionniste et auteur du célèbre Boléro, l'une des œuvres musicales les plus jouées au monde.", quote: "La musique doit émouvoir avant tout.", achievements: ["Composition du Boléro", "Daphnis et Chloé", "Raffinement harmonique absolu"] },
+            { id: 139, name: "Claude Debussy", era: "XXe Siècle & Époque Contemporaine", dates: "1862 – 1918", role: "Compositeur", bio: "Pionnier de la musique impressionniste, auteur de La Mer et de Prélude à l'après-midi d'un faune.", quote: "La musique est le silence entre les notes.", achievements: ["La Mer et Pelléas et Mélisande", "Révolution de l'écriture harmonique", "Modernité musicale française"] },
+            { id: 140, name: "Coco Chanel (Gabrielle Chanel)", era: "XXe Siècle & Époque Contemporaine", dates: "1883 – 1971", role: "Grand couturière et styliste", bio: "Elle libéra le corps des femmes en introduisant le jersey, le pantalon féminin, la petite robe noire et le parfum Chanel N°5.", quote: "La mode se démode, le style jamais.", achievements: ["Création de la maison Chanel", "Invention du parfum Chanel N°5", "Révolution de la silhouette féminine moderne"] },
+            { id: 141, name: "Antoine de Saint-Exupéry", era: "XXe Siècle & Époque Contemporaine", dates: "1900 – 1944", role: "Écrivain et aviateur", bio: "Pionnier de l'aéropostale, auteur du Petit Prince, conte philosophique le plus lu au monde, et de Terre des hommes.", quote: "On ne voit bien qu'avec le cœur. L'essentiel est invisible pour les yeux.", achievements: ["Le Petit Prince et Vol de nuit", "Pilote pionnier de l'Aéropostale", "Valeurs humanistes de l'aviation"] },
+            { id: 142, name: "Charles de Gaulle", era: "XXe Siècle & Époque Contemporaine", dates: "1890 – 1970", role: "Général, chef de la France Libre et Président", bio: "Appel du 18 Juin 1940, libérateur de la France, fondateur de la Ve République et artisan de la grandeur de la France moderne.", quote: "La France ne peut être la France sans la grandeur.", achievements: ["Appel du 18 Juin 1940", "Fondation de la Ve République (1958)", "Réconciliation franco-allemande"] },
+            { id: 143, name: "Jean Moulin", era: "XXe Siècle & Époque Contemporaine", dates: "1899 – 1943", role: "Héros de la Résistance (Rex)", bio: "Préfet républicain, unifia les différents mouvements de la Résistance intérieure sous l'égide du Conseil national de la Résistance (CNR).", quote: "Soyez dignes de ceux qui sont tombés pour que la France vive libre.", achievements: ["Création du Conseil national de la Résistance", "Unification de la Résistance intérieure", "Symbole absolu du courage républicain"] },
+            { id: 144, name: "Simone Veil", era: "XXe Siècle & Époque Contemporaine", dates: "1927 – 2017", role: "Magistrate et femme politique", bio: "Survivante de la Shoah, elle fit adopter la loi dépénalisant l'interruption volontaire de grossesse (IVG) et fut la première présidente du Parlement européen.", quote: "Aucune liberté ne vaut sans la liberté des femmes de disposer de leur corps.", achievements: ["Loi Veil sur l'IVG (1975)", "Présidence du Parlement européen", "Entrée au Panthéon en 2018"] },
+            { id: 145, name: "Albert Camus", era: "XXe Siècle & Époque Contemporaine", dates: "1913 – 1960", role: "Écrivain, philosophe et prix Nobel", bio: "Auteur de L'Étranger, de La Peste et des Réflexions sur la révolte, chantre de la justice et de l'humanisme tempéré.", quote: "Au milieu de l'hiver, j'appris enfin qu'il y avait en moi un invincible été.", achievements: ["Prix Nobel de littérature (1957)", "L'Étranger et La Peste", "Philosophie de l'absurde et de la révolte"] },
+            { id: 146, name: "Jean-Paul Sartre", era: "XXe Siècle & Époque Contemporaine", dates: "1905 – 1980", role: "Philosophe et écrivain", bio: "Chef de file de l'existentialisme, auteur de L'Être et le Néant, figure engagée de tous les combats intellectuels du XXe siècle.", quote: "L'homme est condamné à être libre.", achievements: ["Fondation de l'existentialisme français", "Refus du prix Nobel de littérature", "Engagement intellectuel constant"] },
+            { id: 147, name: "Simone de Beauvoir", era: "XXe Siècle & Époque Contemporaine", dates: "1908 – 1986", role: "Philosophe et essayiste", bio: "Pionnière du féminisme moderne, autrice du Deuxième Sexe (« On ne naît pas femme : on le devient ») et de Le Deuxième Sexe.", quote: "On ne naît pas femme : on le devient.", achievements: ["Publication du Deuxième Sexe (1949)", "Prix Goncourt pour Les Mandarins", "Philosophie existentialiste féministe"] },
+            { id: 148, name: "Édith Piaf", era: "XXe Siècle & Époque Contemporaine", dates: "1915 – 1963", role: "Chanteuse emblématique", bio: "La Môme Piaf, voix tragique et bouleversante, interprète inoubliable de La Vie en rose et de Non, je ne regrette rien.", quote: "Non, rien de rien, non, je ne regrette rien.", achievements: ["Chansons immortelles du patrimoine mondial", "Ambassadrice de la chanson française à l'international", "Destin hors du commun"] },
+            { id: 149, name: "Yves Montand", era: "XXe Siècle & Époque Contemporaine", dates: "1921 – 1991", role: "Chanteur et acteur", bio: "Immense artiste de music-hall et acteur de talent dans des drames politiques et des comédies à succès.", quote: "Le métier d'artiste est un perpétuel recommencement.", achievements: ["Carrière internationale au cinéma et sur scène", "Le Salaire de la peur et Jean de Florette", "Engagement civique et démocratique"] },
+            { id: 150, name: "Jacques Brel", era: "XXe Siècle & Époque Contemporaine", dates: "1929 – 1978", role: "Chanteur et poète", bio: "Bien que belge de naissance, il s'imposa comme l'un des plus grands géants de la chanson française (Le Plat Pays, Ne me quitte pas).", quote: "Il faut risquer l'aventure d'être soi-même.", achievements: ["Chef-d'œuvre de la chanson poétique", "Interprétations théâtrales inoubliables", "Pérennité du répertoire"] },
+            { id: 151, name: "Georges Brassens", era: "XXe Siècle & Époque Contemporaine", dates: "1921 – 1981", role: "Auteur-compositeur-interprète", bio: "Poète libertaire à la guitare, barde des braves gens et pourfendeur de la bêtise bien-pensante avec tendresse et humour.", quote: "Le temps ne fait rien à l'affaire, quand on est con, on est con.", achievements: ["Répertoire poétique intemporel (Les Copains d'abord)", "Maîtrise de la langue française en chanson", "Indépendance d'esprit absolue"] },
+            { id: 152, name: "Jacques Prévert", era: "XXe Siècle & Époque Contemporaine", dates: "1900 – 1977", role: "Poète et scénariste", bio: "Poète du peuple et des amoureux, auteur du recueil Paroles et des scénarios des Enfants du paradis.", quote: "Quelle drôle de vie ! On passe la moitié de sa vie à attendre que les choses s'arrangent et l'autre moitié à regretter qu'elles aient passé.", achievements: ["Recueil Paroles (millions d'exemplaires)", "Scénarios phares du cinéma réaliste poétique", "Poésie simple et universelle"] },
+            { id: 153, name: "Jean Cocteau", era: "XXe Siècle & Époque Contemporaine", dates: "1889 – 1963", role: "Poète, cinéaste et artiste total", bio: "Le Prince des poètes, touche-à-tout de génie (cinéma avec La Belle et la Bête, poésie, peinture, théâtre).", quote: "La poésie est indispensable, mais je serais bien hardi de dire à quoi.", achievements: ["La Belle et la Bête (film chef-d'œuvre)", "Œuvre graphique et poétique immense", "Élection à l'Académie française"] },
+            { id: 154, name: "Pablo Picasso", era: "XXe Siècle & Époque Contemporaine", dates: "1881 – 1973", role: "Peintre et sculpteur", bio: "Espagnol d'origine mais installé en France, il révolutionna l'art moderne avec le cubisme et l'œuvre monumentale Guernica.", quote: "Il faut quatre ans pour peindre comme un Raphael, toute une vie pour peindre comme un enfant.", achievements: ["Invention du cubisme", "Guernica (chef-d'œuvre engagé)", "Immense production artistique universelle"] },
+            { id: 155, name: "Marc Chagall", era: "XXe Siècle & Époque Contemporaine", dates: "1887 – 1985", role: "Peintre moderniste", bio: "Artiste aux visions oniriques et colorées, naturalisé français, auteur du plafond de l'Opéra Garnier à Paris.", quote: "La couleur est tout. Quand la couleur est correcte, la forme l'est aussi.", achievements: ["Plafond de l'Opéra Garnier", "Vitraux célèbres à travers le monde", "Peinture empreinte de poésie et de rêve"] },
+            { id: 156, name: "Le Corbusier (Charles-Édouard Jeanneret)", era: "XXe Siècle & Époque Contemporaine", dates: "1887 – 1965", role: "Architecte et urbaniste", bio: "Pionnier de l'architecture moderne, inventeur de la machine à habiter, de la Cité radieuse et du Modulor.", quote: "L'architecture est le jeu savant, correct et magnifique des volumes assemblés sous la lumière.", achievements: ["La Cité radieuse de Marseille", "Invention du style international", "Œuvres classées à l'UNESCO"] },
+            { id: 157, name: "Jacques-Yves Cousteau", era: "XXe Siècle & Époque Contemporaine", dates: "1910 – 1997", role: "Océanographe et explorateur", bio: "Commandant de la Calypso, inventeur du scaphandre autonome avec Émile Gagnan, pionnier de la défense des océans.", quote: "On aime ce que l'on a protégé, et l'on protège ce que l'on a aimé.", achievements: ["Invention du détendeur de plongée moderne", "Séries documentaires Le Monde du silence", "Sensibilisation écologique mondiale"] },
+            { id: 158, name: "Émile Gagnan", era: "XXe Siècle & Époque Contemporaine", dates: "1900 – 1979", role: "Ingénieur et inventeur", bio: "Co-inventeur avec le commandant Cousteau du scaphandre autonome moderne (détendeur Cousteau-Gagnan).", quote: "L'ingénierie met la science au service de l'exploration.", achievements: ["Invention du détendeur pour scaphandre autonome", "Révolution de la plongée sous-marine", "Brevets industriels majeurs"] },
+            { id: 159, name: "Abbé Pierre (Henri Grouès)", era: "XXe Siècle & Époque Contemporaine", dates: "1912 – 2007", role: "Prêtre, résistant et fondateur d'Emmaüs", bio: "Figure de la lutte contre la grande pauvreté, l'insalubrité du logement, et fondateur du mouvement Emmaüs.", quote: "Gouverner, c'est partager. Aimer, c'est donner.", achievements: ["Fondation du mouvement Emmaüs", "Appel insurrectionnel de l'hiver 1954", "Défense infatigable des sans-abri"] },
+            { id: 160, name: "Fernandel (Fernand Contandin)", era: "XXe Siècle & Époque Contemporaine", dates: "1903 – 1971", role: "Acteur et comique", bio: "Inoubliable interprète de Don Camillo et de comédies populaires au sourire légendaire et au rire communicatif.", quote: "Le rire est le soleil de l'âme.", achievements: ["Série culte de Don Camillo", "Immense star du cinéma populaire français", "Chansons et numéros de music-hall"] },
+            { id: 161, name: "Bourvil (André Raimbourg)", era: "XXe Siècle & Époque Contemporaine", dates: "1917 – 1970", role: "Acteur et chanteur", bio: "Gentilhomme du cinéma français, inoubliable dans La Grande Vadrouille, Le Corniaud et des rôles dramatiques bouleversants.", quote: "La gentillesse est la vraie force des gens simples.", achievements: ["La Grande Vadrouille (record au box-office)", "Talent comique et dramatique exceptionnel", "Chansons populaires inoubliables"] },
+            { id: 162, name: "Louis de Funès", era: "XXe Siècle & Époque Contemporaine", dates: "1914 – 1983", role: "Acteur et comique de génie", bio: "Génie burlesque aux cent visages, roi du rire dans Les Gendarmes, Le Corniaud, La Folie des grandeurs et L'Avare.", quote: "Je ne suis pas difficile, je veux seulement ce qu'il y a de meilleur.", achievements: ["Records historiques du box-office français", "Création de personnages cultes inoubliables", "Maîtrise absolue du rythme comique"] },
+            { id: 163, name: "Jean Gabin", era: "XXe Siècle & Époque Contemporaine", dates: "1904 – 1976", role: "Acteur légendaire", bio: "Figure tutélaire du cinéma français, incarnation du réalisme poétique (Quai des Brumes) puis du patriarche respecté.", quote: "Maintenant, je sais qu'on ne sait jamais.", achievements: ["Chefs-d'œuvre du réalisme poétique", "Prix d'interprétation à Venise et Cannes", "Immense carrière cinématographique"] },
+            { id: 164, name: "Alain Delon", era: "XXe Siècle & Époque Contemporaine", dates: "1935 – 2024", role: "Acteur et producteur", bio: "Légende du cinéma mondial, inoubliable dans Le Samouraï, Plein Soleil, Rocco et ses frères et Le Guépard.", quote: "Je ne suis pas une star, je suis un acteur.", achievements: ["Chefs-d'œuvre du cinéma d'auteur international", "Icône absolue du 7e art", "Carrière exceptionnelle de plus de 50 ans"] },
+            { id: 165, name: "Brigitte Bardot", era: "XXe Siècle & Époque Contemporaine", dates: "né en 1934", role: "Actrice et militante", bio: "Icône planétaire du cinéma des années 1950-1960 (Et Dieu… créa la femme), devenue pionnière de la cause animale.", quote: "J'ai donné ma jeunesse et ma beauté aux hommes ; je donne mon expérience et mon meilleur aux animaux.", achievements: ["Icône internationale du cinéma", "Fondation Brigitte-Bardot pour les animaux", "Révolution des mœurs et de la liberté féminine"] },
+            { id: 166, name: "Gérard Philipe", era: "XXe Siècle & Époque Contemporaine", dates: "1922 – 1959", role: "Acteur de théâtre et de cinéma", bio: "Prince des acteurs français, inoubliable dans Le Cid, Fanfan la Tulipe et Les Liaisons dangereuses.", quote: "Le théâtre est un art de l'éphémère qui laisse une trace éternelle.", achievements: ["Le Cid au TNP", "Fanfan la Tulipe", "Incarnation du romantisme théâtral"] },
+            { id: 167, name: "Jean-Luc Godard", era: "XXe Siècle & Époque Contemporaine", dates: "1930 – 2022", role: "Cinéaste et chef de file de la Nouvelle Vague", bio: "Réalisateur iconoclaste et révolutionnaire d'À bout de souffle, qui subvertit les codes traditionnels du cinéma.", quote: "Le cinéma, c'est vingt-quatre fois par seconde la vérité.", achievements: ["Chef de file de la Nouvelle Vague", "À bout de souffle et Le Mépris", "Renouvellement radical du langage cinématographique"] },
+            { id: 168, name: "François Truffaut", era: "XXe Siècle & Époque Contemporaine", dates: "1932 – 1984", role: "Cinéaste et critique", bio: "Maître de la Nouvelle Vague, créateur du personnage d'Antoine Doinel (Les 400 coups) et de somptueux drames poétiques.", quote: "Les films sont plus harmonieux que la vie.", achievements: ["Les 400 coups (prix de la mise en scène à Cannes)", "Jules et Jim", "Célébration poétique de l'enfance et de l'amour"] },
+            { id: 169, name: "Serge Gainsbourg", era: "XXe Siècle & Époque Contemporaine", dates: "1928 – 1991", role: "Auteur-compositeur-interprète", bio: "Poète provocateur et mélodiste de génie, auteur de chansons immortelles (Je t'aime… moi non plus, Le Poinçonneur des Lilas).", quote: "La laideur a cela de supérieur à la beauté qu'elle ne s'efface pas avec le temps.", achievements: ["Révolution de la chanson française", "Chefs-d'œuvre pop et provocateurs", "Pièce maîtresse de la culture moderne"] },
+            { id: 170, name: "Jacques Chirac", era: "XXe Siècle & Époque Contemporaine", dates: "1932 – 2019", role: "Président de la République", bio: "Figure majeure de la vie politique française, maire de Paris, Premier ministre et Président, opposant à la guerre en Irak en 2003.", quote: "Notre maison brûle et nous regardons ailleurs.", achievements: ["Reconnaissance de la responsabilité de l'État dans la rafle du Vél' d'Hiv'", "Non à la guerre en Irak à l'ONU", "Création du musée du Quai Branly"] },
+            { id: 171, name: "Robert Badinter", era: "XXe Siècle & Époque Contemporaine", dates: "1928 – 2024", role: "Avocat, homme politique et essayiste", bio: "Grand humaniste, il obtint l'abolition de la peine de mort en France en 1981 en tant que Garde des Sceaux.", quote: "Il n'y a pas de justice sans humanité.", achievements: ["Abolition de la peine de mort en France (1981)", "Réforme du Code pénal", "Combat permanent pour les droits de l'homme"] },
+            { id: 172, name: "Maurice Béjart", era: "XXe Siècle & Époque Contemporaine", dates: "1927 – 2007", role: "Chorégraphe et danseur", bio: "Il révolutionna la danse contemporaine en portant les ballets sur de grandes scènes populaires du monde entier.", quote: "La danse est le seul art dont nous soyons nous-mêmes le matériau.", achievements: ["Création du Ballet du XXe siècle", "Le Boléro de Ravel revisité", "Popularisation mondiale de la danse moderne"] },
+            { id: 173, name: "Roland Barthes", era: "XXe Siècle & Époque Contemporaine", dates: "1915 – 1980", role: "Philosophe et sémiologue", bio: "Penseur majeur de la sémiologie et de la critique littéraire, auteur de Mythologies et de La Chambre claire.", quote: "La langue est un labyrinthe où l'esprit se perd avec délice.", achievements: ["Mythologies (analyse critique de la culture de masse)", "Renouvellement de la sémiologie littéraire", "Professeur au Collège de France"] },
+            { id: 174, name: "Michel Foucault", era: "XXe Siècle & Époque Contemporaine", dates: "1926 – 1984", role: "Philosophe et historien des systèmes de pensée", bio: "Analyste critique des institutions, du pouvoir et de la folie dans Surveiller et punir et Histoire de la folie.", quote: "Le pouvoir n'est pas une institution, ni une structure, c'est le nom qu'on prête à une situation stratégique complexe.", achievements: ["Surveiller et punir", "Travaux sur la généalogie du pouvoir", "Influence mondiale en sciences humaines"] },
+            { id: 175, name: "Pierre Bourdieu", era: "XXe Siècle & Époque Contemporaine", dates: "1930 – 2002", role: "Sociologue", bio: "Penseur majeur de la sociologie contemporaine, analysant la reproduction des inégalités scolaires et culturelles (la distinction, le capital culturel).", quote: "La sociologie est un sport de combat.", achievements: ["La Distinction et Les Héritiers", "Concepts de capital culturel et d'habitus", "Engagement public critique"] },
+            { id: 176, name: "Gérard Depardieu", era: "XXe Siècle & Époque Contemporaine", dates: "né en 1948", role: "Acteur", bio: "Monstre sacré du cinéma français, inoubliable dans Cyrano de Bergerac, Jean de Florette et Les Valseuses.", quote: "Jouer, c'est prêter son corps aux fantômes des autres.", achievements: ["Cyrano de Bergerac (prix d'interprétation à Cannes)", "Carrière prolifique internationale", "Immense talent protéiforme"] },
+            { id: 177, name: "Jean-Paul Gaultier", era: "XXe Siècle & Époque Contemporaine", dates: "né en 1952", role: "Grand couturier et créateur", bio: "L'enfant terrible de la mode française, célèbre pour ses marinières, ses jupes pour hommes et le bustier conique de Madonna.", quote: "La mode est un jeu, un cri d'amour et de liberté.", achievements: ["Révolution des codes vestimentaires traditionnels", "Costumes de scène iconiques (Madonna, cinéma)", "Haute couture audacieuse et inclusive"] },
+            { id: 178, name: "Zinedine Zidane", era: "XXe Siècle & Époque Contemporaine", dates: "né en 1972", role: "Joueur et entraîneur de football", bio: "Légende vivante du sport français, champion du monde 1998, héros de toute une nation et entraîneur mythique du Real Madrid.", quote: "Le travail d'équipe est le secret des plus grands triomphes.", achievements: ["Coupe du monde 1998 et Euro 2000", "Trois Ligues des champions consécutives comme entraîneur", "Icône universelle d'élégance sportive"] },
+            { id: 179, name: "Thomas Pesquet", era: "XXe Siècle & Époque Contemporaine", dates: "né en 1978", role: "Astronaute de l'Agence spatiale européenne", bio: "Premier astronaute français à commander la Station spatiale internationale (ISS), ambassadeur de la beauté et de la fragilité de la Terre.", quote: "Vu de l'espace, il n'y a pas de frontières, il n'y a qu'une seule Terre à protéger.", achievements: ["Commandant de l'ISS", "Missions Proxima et Alpha", "Immense vulgarisation scientifique et photographique"] }
+        ];
+
+        let currentEra = 'Toutes';
+        let searchQuery = '';
+        let favoritesOnly = false;
+        let favorites = JSON.parse(localStorage.getItem('french_figures_favs') || '[]');
+        let selectedFigureId = null;
+
+        // Initialize application on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderFigures();
+            updateFavoritesCount();
+        });
+
+        // Handle filtering by era
+        function filterByEra(era) {
+            currentEra = era;
+            document.querySelectorAll('.era-tab').forEach(btn => {
+                btn.classList.remove('bg-slate-900', 'text-white');
+                btn.classList.add('bg-slate-100', 'text-slate-600', 'hover:bg-slate-200');
+            });
+            const activeBtn = document.getElementById(`era-btn-${era}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-slate-100', 'text-slate-600', 'hover:bg-slate-200');
+                activeBtn.classList.add('bg-slate-900', 'text-white');
+            }
+            renderFigures();
+        }
+
+        // Handle search input
+        function handleSearch() {
+            const input = document.getElementById('search-input');
+            searchQuery = input.value.toLowerCase().trim();
+            renderFigures();
+        }
+
+        // Toggle favorites view mode
+        function toggleFavoritesFilter() {
+            favoritesOnly = !favoritesOnly;
+            const btn = document.getElementById('favorites-toggle');
+            if (favoritesOnly) {
+                btn.classList.add('bg-amber-50', 'border-amber-300', 'text-amber-900');
+                btn.classList.remove('bg-white', 'text-slate-700');
+            } else {
+                btn.classList.remove('bg-amber-50', 'border-amber-300', 'text-amber-900');
+                btn.classList.add('bg-white', 'text-slate-700');
+            }
+            renderFigures();
+        }
+
+        // Reset all filters
+        function resetFilters() {
+            currentEra = 'Toutes';
+            searchQuery = '';
+            favoritesOnly = false;
+            document.getElementById('search-input').value = '';
+            document.getElementById('favorites-toggle').classList.remove('bg-amber-50', 'border-amber-300', 'text-amber-900');
+            document.getElementById('favorites-toggle').classList.add('bg-white', 'text-slate-700');
+            filterByEra('Toutes');
+        }
+
+        // Toggle favorite state for a figure ID
+        function toggleFavorite(id, event) {
+            if (event) event.stopPropagation();
+            const index = favorites.indexOf(id);
+            if (index > -1) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(id);
+            }
+            localStorage.setItem('french_figures_favs', JSON.stringify(favorites));
+            updateFavoritesCount();
+            renderFigures();
+            if (selectedFigureId === id) {
+                updateModalFavoriteState();
+            }
+        }
+
+        function updateFavoritesCount() {
+            document.getElementById('favorites-count').textContent = favorites.length;
+        }
+
+        // Render main grid of cards
+        function renderFigures() {
+            const grid = document.getElementById('figures-grid');
+            const emptyState = document.getElementById('empty-state');
+            const resultsCount = document.getElementById('results-count');
+
+            let filtered = figuresData.filter(fig => {
+                const matchesEra = (currentEra === 'Toutes' || fig.era === currentEra);
+                const matchesSearch = fig.name.toLowerCase().includes(searchQuery) || 
+                                      fig.role.toLowerCase().includes(searchQuery) ||
+                                      fig.era.toLowerCase().includes(searchQuery);
+                const matchesFav = (!favoritesOnly || favorites.includes(fig.id));
+                return matchesEra && matchesSearch && matchesFav;
+            });
+
+            resultsCount.textContent = `Affichage de ${filtered.length} figure${filtered.length > 1 ? 's' : ''} historique${filtered.length > 1 ? 's' : ''}`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = filtered.map(fig => {
+                const isFav = favorites.includes(fig.id);
+                return `
+                    <div onclick="openModal(${fig.id})" class="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 hover:shadow-md hover:border-amber-300/60 transition duration-200 flex flex-col justify-between cursor-pointer group relative">
+                        <div class="absolute top-4 right-4 z-10">
+                            <button onclick="toggleFavorite(${fig.id}, event)" class="w-8 h-8 rounded-full bg-slate-50 hover:bg-amber-50 flex items-center justify-center text-slate-400 hover:text-amber-600 transition shadow-2xs">
+                                <i class="${isFav ? 'fa-solid text-amber-600' : 'fa-regular'} fa-bookmark text-xs"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/60 mb-2 truncate max-w-[150px]">${fig.era}</span>
+                            <h3 class="font-bold text-slate-900 text-sm sm:text-base group-hover:text-amber-700 transition leading-tight pr-6">${fig.name}</h3>
+                            <p class="text-xs text-amber-800/80 font-medium mt-0.5 line-clamp-1">${fig.role}</p>
+                            <p class="text-[11px] text-slate-400 mt-1">${fig.dates}</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                            <span class="truncate pr-2 italic">« ${fig.quote.substring(0, 35)}... »</span>
+                            <span class="text-amber-600 group-hover:translate-x-1 transition flex-shrink-0"><i class="fa-solid fa-arrow-right text-[10px]"></i></span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Modal interactions
+        function openModal(id) {
+            selectedFigureId = id;
+            const fig = figuresData.find(f => f.id === id);
+            if (!fig) return;
+
+            document.getElementById('modal-era-badge').textContent = fig.era;
+            document.getElementById('modal-dates').textContent = fig.dates;
+            document.getElementById('modal-name').textContent = fig.name;
+            document.getElementById('modal-role').textContent = fig.role;
+            document.getElementById('modal-quote').textContent = `"${fig.quote}"`;
+            document.getElementById('modal-bio').textContent = fig.bio;
+
+            const achievementsList = document.getElementById('modal-achievements');
+            achievementsList.innerHTML = fig.achievements.map(ach => `
+                <li class="flex items-start space-x-2">
+                    <span class="text-amber-600 mt-1"><i class="fa-solid fa-check text-xs"></i></span>
+                    <span>${ach}</span>
+                </li>
+            `).join('');
+
+            updateModalFavoriteState();
+
+            const modal = document.getElementById('detail-modal');
+            const content = document.getElementById('modal-content');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-95');
+            content.classList.add('scale-100');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('detail-modal');
+            const content = document.getElementById('modal-content');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            document.body.style.overflow = 'auto';
+            selectedFigureId = null;
+        }
+
+        function toggleFavoriteCurrentModal() {
+            if (selectedFigureId !== null) {
+                toggleFavorite(selectedFigureId, null);
+            }
+        }
+
+        function updateModalFavoriteState() {
+            const favBtn = document.getElementById('modal-fav-btn');
+            const isFav = favorites.includes(selectedFigureId);
+            if (isFav) {
+                favBtn.innerHTML = '<i class="fa-solid text-amber-600 fa-bookmark"></i>';
+                favBtn.classList.add('border-amber-300', 'bg-amber-50');
+            } else {
+                favBtn.innerHTML = '<i class="fa-regular fa-bookmark"></i>';
+                favBtn.classList.remove('border-amber-300', 'bg-amber-50');
+            }
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('detail-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
